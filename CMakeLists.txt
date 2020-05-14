@@ -4,6 +4,7 @@ project(trajectory_utils)
 find_package(catkin REQUIRED
 COMPONENTS
 		roscpp
+		bspline
     control_arch
 		geometry_utils
 		forward_arc_primitives
@@ -16,6 +17,7 @@ catkin_package(
     DEPENDS
     CATKIN_DEPENDS
 			roscpp
+			bspline
 			control_arch
 			geometry_utils
 			forward_arc_primitives
