@@ -23,4 +23,17 @@ namespace bspline_utils
   }
 
 
+  inline double pathLength(const vector<Eigen::Vector3d>& path)
+  {
+    double length = 0.0;
+    if (path.size() < 2) return length;
+
+    for (int i = 0; i < path.size() - 1; ++i) {
+      length += (path[i + 1] - path[i]).norm();
+    }
+    return length;
+  }
+
+
+
 }
