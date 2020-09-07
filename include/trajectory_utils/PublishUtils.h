@@ -15,6 +15,8 @@ namespace publisher_utils
 {
   inline void publishWaypoints(const std::vector<state_t>& traj_wpts, const ros::Time& publish_time, float traj_duration, ros::Publisher& wpts_pub)
   {
+    if (traj_wpts.size() == 0) return;
+
     control_arch::Waypoints msg;
     Waypoints traj(traj_wpts);
     traj.toMessage(msg);

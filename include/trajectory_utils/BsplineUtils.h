@@ -1,3 +1,5 @@
+#pragma once
+
 #include <Eigen/Eigen>
 #include <bspline/non_uniform_bspline.h>
 
