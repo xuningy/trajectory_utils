@@ -57,15 +57,13 @@ namespace similarity
     C = [&](int i, int j) mutable
     {
       double dist = (traj1[i].pos - traj2[j].pos).norm();
-      // std::cout << "dist " << dist;
       if (std::isnan(dist))
       {
-        std::cout << "DIST IS NAN" << std::endl;
+        std::cout << "[similarity::DiscreteFrechetDistance] DIST IS NAN" << std::endl;
         return std::numeric_limits<double>::infinity();
       }
       if (CA(i, j) > -0.9)
       {
-        // std::cout << " case 1" << std::endl;
         return CA(i, j);
       }
       else if (i == 0 && j == 0)
@@ -76,22 +74,15 @@ namespace similarity
       }
       else if (i > 0 && j == 0)
       {
-        // std::cout << " case 3" << std::endl;
-
         double dist = (traj1[i].pos - traj2[0].pos).norm();
-        std::cout << dist << std::endl;
         CA(i, j) = std::max(C(i-1, 0), (traj1[i].pos - traj2[0].pos).norm());
       }
       else if (i == 0 && j > 0 )
       {
-        // std::cout << " case 4" << std::endl;
-
         CA(i, j) = std::max(C(0, j-1), (traj1[0].pos - traj2[j].pos).norm());
       }
       else if (i > 0 && j > 0)
       {
-        // std::cout << " case 5" << std::endl;
-
         CA(i, j) = std::max(
                           std::min({C(i-1, j), C(i-1, j-1), C(i, j-1)}),
                           (traj1[i].pos - traj2[j].pos).norm()

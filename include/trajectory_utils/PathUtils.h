@@ -120,7 +120,6 @@ namespace path_utils
     {
       state_t state;
       state.pos = geometry_utils::Vec3(point(0), point(1), point(2));
-      std::cout << state.pos << std::endl;
       rediscretized_path.push_back(state);
     }
 
