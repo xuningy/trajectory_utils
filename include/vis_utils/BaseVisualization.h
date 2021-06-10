@@ -65,6 +65,37 @@ inline void visualizeSphereList(const std::vector<Eigen::Vector3d>& list, double
   visualizeSphereList(list, resolution, color_msg, id, pub);
 }
 
+inline visualization_msgs::Marker visualizeLine(const std::vector<Eigen::Vector3d>& list, const std_msgs::ColorRGBA& color, int id)
+{
+  visualization_msgs::Marker mk;
+  mk.header.frame_id = "world";
+  mk.header.stamp = ros::Time::now();
+  mk.type = visualization_msgs::Marker::LINE_STRIP;
+  mk.id = id;
+  mk.action = visualization_msgs::Marker::ADD;
+  mk.pose.orientation.x = 0.0;
+  mk.pose.orientation.y = 0.0;
+  mk.pose.orientation.z = 0.0;
+  mk.pose.orientation.w = 1.0;
+
+  mk.color = color;
+
+  mk.scale.x = 0.1;
+  mk.scale.y = 0.1;
+  mk.scale.z = 0.1;
+
+  geometry_msgs::Point pt;
+  for (size_t i = 0; i < list.size(); i++) {
+    pt.x = list[i](0);
+    pt.y = list[i](1);
+    pt.z = list[i](2);
+    mk.points.push_back(pt);
+  }
+
+  return mk;
+}
+
+
 inline void visualizeLine(const std::vector<Eigen::Vector3d>& list, const std_msgs::ColorRGBA& color, int id, const ros::Publisher& pub)
 {
   visualization_msgs::Marker mk;
@@ -96,7 +127,6 @@ inline void visualizeLine(const std::vector<Eigen::Vector3d>& list, const std_ms
   }
   pub.publish(mk);
 }
-
 
 inline void visualizeLine(const std::vector<Eigen::Vector3d>& list, const Eigen::Vector4d& color, int id, const ros::Publisher& pub)
 {

@@ -100,6 +100,68 @@ namespace similarity
     return cm;
   }
 
+  inline double DiscreteFrechetDistance(const std::vector<Eigen::Vector3d>& traj1, const std::vector<Eigen::Vector3d>& traj2)
+  {
+    if (traj1.size() != traj2.size())
+    {
+      std::cout << "[similarity::DiscreteFrechetDistance] traj1.size(): " << traj1.size() << " traj2.size(): " << traj2.size() << std::endl;
+      throw std::invalid_argument("[similarity::DiscreteFrechetDistance] Provided trajectories does not have the same length!");
+    }
+      // throw std::invalid_argument(std::string("[similarity::DiscreteFrechetDistance] Provided trajectories does not have the same length! traj1.size(): %d, traj2.size(): %d", traj1.size(), traj2.size()));
+
+    if (traj1.empty())
+      throw std::invalid_argument("[similarity::DiscreteFrechetDistance] trajectories does not contain any points!");
+
+    Eigen::MatrixXd CA = Eigen::MatrixXd::Constant(traj1.size(), traj2.size(), -1.0);
+
+    // coupling measure search function; recursive.
+    std::function<double(int, int)> C;
+    C = [&](int i, int j) mutable
+    {
+      double dist = (traj1[i] - traj2[j]).norm();
+      if (std::isnan(dist))
+      {
+        std::cout << "[similarity::DiscreteFrechetDistance] DIST IS NAN" << std::endl;
+        return std::numeric_limits<double>::infinity();
+      }
+      if (CA(i, j) > -0.9)
+      {
+        return CA(i, j);
+      }
+      else if (i == 0 && j == 0)
+      {
+        // std::cout << " case 2" << std::endl;
+
+        CA(i, j) = (traj1[0] - traj2[0]).norm();
+      }
+      else if (i > 0 && j == 0)
+      {
+        double dist = (traj1[i] - traj2[0]).norm();
+        CA(i, j) = std::max(C(i-1, 0), (traj1[i] - traj2[0]).norm());
+      }
+      else if (i == 0 && j > 0 )
+      {
+        CA(i, j) = std::max(C(0, j-1), (traj1[0] - traj2[j]).norm());
+      }
+      else if (i > 0 && j > 0)
+      {
+        CA(i, j) = std::max(
+                          std::min({C(i-1, j), C(i-1, j-1), C(i, j-1)}),
+                          (traj1[i] - traj2[j]).norm()
+                        );
+      }
+      else
+      {
+        std::cout << "[similarity::DiscreteFrechetDistance] you shouldnt be here!" << std::endl;
+      }
+      // std::cout << "CA(" << i << ", " << j << "): " << CA(i, j) << std::endl;
+      return CA(i, j);
+    };
+
+    double cm = C(traj1.size()-1, traj2.size()-1);
+    return cm;
+  }
+
 
   inline void testDFD()
   {

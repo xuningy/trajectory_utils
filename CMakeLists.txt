@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 find_package(catkin REQUIRED
 COMPONENTS
 		roscpp
-		bspline
+		# bspline
     control_arch
 		geometry_utils
 		forward_arc_primitives
@@ -19,7 +19,7 @@ catkin_package(
     DEPENDS
     CATKIN_DEPENDS
 			roscpp
-			bspline
+			# bspline
 			control_arch
 			geometry_utils
 			forward_arc_primitives

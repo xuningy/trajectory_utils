@@ -48,7 +48,7 @@ namespace path_utils
     return dist;
   }
 
-  // rediscretizations
+  // rediscretization of a path given a fixed number of points along the line
   inline std::vector<Eigen::Vector3d> discretizePath(const std::vector<Eigen::Vector3d>& path, int pt_num)
   {
     // if the path contains points that are identical (first and last points are the same)
@@ -164,6 +164,31 @@ namespace path_utils
     return new_path;
   }
 
+  // version where the index vector is returned as well to show where the old path points are located.
+  inline std::vector<Eigen::Vector3d> rediscretizePath(const std::vector<Eigen::Vector3d>& path, double resolution, std::vector<int>& idx_vec)
+  {
+    std::vector<Eigen::Vector3d> new_path, segment;
+    idx_vec.clear();
+
+    if (path.size() < 2) {
+      ROS_ERROR("what path? ");
+      return new_path;
+    }
+
+    idx_vec.push_back(0);
+
+    for (size_t i = 0; i < path.size() - 1; ++i) {
+      segment = discretizeLine(path[i], path[i + 1], resolution);
+      if (segment.size() < 1) continue;
+
+      new_path.insert(new_path.end(), segment.begin(), segment.end());
+      idx_vec.push_back(new_path.size()-1);
+      if (i != path.size() - 2) new_path.pop_back();
+    }
+
+    return new_path;
+  }
+
   inline std::vector<Eigen::Vector3d> rediscretizePath(const std::vector<Eigen::Vector3d>& path)
   {
     return rediscretizePath(path, 0.1);
@@ -197,13 +222,14 @@ namespace path_utils
     return {idx, closest_reference};
   }
 
-  inline Eigen::Vector3d findClosestPointAlongPath(const std::vector<Eigen::Vector3d>& path, const Eigen::Vector3d& pos)
+  inline std::tuple<int, Eigen::Vector3d> findClosestPointAlongPath(const std::vector<Eigen::Vector3d>& path, const Eigen::Vector3d& pos)
   {
+    int idx = 0;
     double min_dist = std::numeric_limits<double>::max();
     Eigen::Vector3d closest_reference = path.front();
     if (path.size() == 0)
       throw std::invalid_argument("[path_utils::findClosestPointAlongPath] path vector is empty!");
-    if (path.size() == 1) return closest_reference;
+    if (path.size() == 1) return {-1, closest_reference};
 
     for (size_t i = 0; i < path.size(); i++)
     {
@@ -213,10 +239,11 @@ namespace path_utils
       {
         min_dist = dist;
         closest_reference = path[i];
+        idx = i;
       }
     }
 
-    return closest_reference;
+    return {idx, closest_reference};
   }
 
   inline std::tuple<int, state_t> findPointAtTime(const std::vector<state_t>& path, double t)
