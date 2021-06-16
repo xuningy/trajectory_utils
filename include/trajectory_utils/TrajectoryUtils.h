@@ -65,12 +65,10 @@ namespace traj_utils
   }
 
   inline std::vector<Eigen::Vector3d> getPosAtTimePoly7(double T, const std::vector<Vec8_t, Eigen::aligned_allocator<Vec8_t>>& coeffs, double dt) {
-    std::cout << "getPosAtTimePoly7 dt" << std::endl;
 
     std::vector<Eigen::Vector3d> poses;
     for (double t = 0; t <= T+1e-7; t+=dt)
     {
-      std::cout << t+dt << std::endl;
       State state = getPoseAtTimePoly7(t, coeffs);
       poses.push_back(state.pos);
     }
@@ -78,7 +76,6 @@ namespace traj_utils
   }
 
   inline std::vector<Eigen::Vector3d> getPosAtTimePoly7(double T, const std::vector<Vec8_t, Eigen::aligned_allocator<Vec8_t>>& coeffs, int N) {
-    std::cout << "getPosAtTimePoly7 N" << std::endl;
     double dt = T/(N-1);
     return getPosAtTimePoly7(T, coeffs, dt);
   }

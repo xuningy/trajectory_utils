@@ -101,6 +101,81 @@ namespace path_utils
     return dis_path;
   }
 
+  // rediscretization of a path given a fixed number of points along the line
+  // version where the index vector is returned as well to show where the old path points are located. (if the point is between two idx, it should be the first one that is added). The length of the idx_vec is the same as path.
+  inline std::vector<Eigen::Vector3d> discretizePath(const std::vector<Eigen::Vector3d>& path, int pt_num, std::vector<int>& idx_vec)
+  {
+    // if the path contains points that are identical (first and last points are the same)
+    if (path.front() == path.back())
+    {
+      std::cout << "discretize path: same point!" << std::endl;
+      std::vector<Eigen::Vector3d> dis_path;
+      for (int i = 0; i < pt_num; i++)
+      {
+        dis_path.push_back(path.front());
+        idx_vec.push_back(0); // only the first point is used.
+      }
+
+      return dis_path;
+
+    }
+
+    // else, discretize as normal
+    std::vector<double> len_list;
+    len_list.push_back(0.0);
+
+    // tracking indices
+    idx_vec.push_back(0);
+    int prev_idx = 0;
+    for (size_t i = 0; i < path.size() - 1; ++i) {
+      double inc_l = (path[i + 1] - path[i]).norm();
+      len_list.push_back(inc_l + len_list[i]);
+    }
+
+    // calc pt_num points along the path
+    double len_total = len_list.back();
+    double dl = len_total / double(pt_num - 1);
+    double cur_l;
+
+    std::vector<Eigen::Vector3d> dis_path;
+    for (int i = 0; i < pt_num; ++i) {
+      cur_l = double(i) * dl;
+
+      // find the range cur_l in
+      int idx = -1;
+      for (size_t j = 0; j < len_list.size() - 1; ++j) {
+        if (cur_l >= len_list[j] - 1e-4 && cur_l <= len_list[j + 1] + 1e-4) {
+          idx = j;
+          break;
+        }
+      }
+
+      // to extract indices where the values are.
+      if (idx > prev_idx) {
+        // push back prev_idx (k = idx - prev_idx) times
+        int K = idx-prev_idx;
+        for (int k = 0; k < K; k++) {
+          idx_vec.push_back(i);
+        }
+        prev_idx = idx;
+      }
+
+      // find lambda and interpolate
+      double lambda = (cur_l - len_list[idx]) / (len_list[idx + 1] - len_list[idx]);
+      Eigen::Vector3d inter_pt = (1 - lambda) * path[idx] + lambda * path[idx + 1];
+      dis_path.push_back(inter_pt);
+
+    }
+    // last point in the interpolation isn't added
+    idx_vec.push_back(dis_path.size()-1);
+
+    // check that lengths are the ssame
+    std::cout << "idx_vec length: " << idx_vec.size() << " path length: " << path.size() << " they should be the same " << std::endl;
+
+    return dis_path;
+  }
+
+
   // rediscretize a path
   inline std::vector<state_t> discretizePath(const std::vector<state_t>& path, int pt_num)
   {
@@ -153,40 +228,53 @@ namespace path_utils
       return new_path;
     }
 
-    for (size_t i = 0; i < path.size() - 1; ++i) {
-      segment = discretizeLine(path[i], path[i + 1], resolution);
+    // for (size_t i = 0; i < path.size() - 1; ++i) {
+    //   segment = discretizeLine(path[i], path[i + 1], resolution);
+    //
+    //   if (segment.size() < 1) continue;
+    //
+    //   new_path.insert(new_path.end(), segment.begin(), segment.end());
+    //   if (i != path.size() - 2) new_path.pop_back();
+    // }
+    // return new_path;
 
-      if (segment.size() < 1) continue;
+    int N = std::round(Length(path)/resolution);
+    new_path = discretizePath(path, N);
 
-      new_path.insert(new_path.end(), segment.begin(), segment.end());
-      if (i != path.size() - 2) new_path.pop_back();
-    }
     return new_path;
   }
 
   // version where the index vector is returned as well to show where the old path points are located.
   inline std::vector<Eigen::Vector3d> rediscretizePath(const std::vector<Eigen::Vector3d>& path, double resolution, std::vector<int>& idx_vec)
   {
-    std::vector<Eigen::Vector3d> new_path, segment;
+    std::vector<Eigen::Vector3d> new_path;
     idx_vec.clear();
-
-    if (path.size() < 2) {
-      ROS_ERROR("what path? ");
-      return new_path;
-    }
-
-    idx_vec.push_back(0);
-
-    for (size_t i = 0; i < path.size() - 1; ++i) {
-      segment = discretizeLine(path[i], path[i + 1], resolution);
-      if (segment.size() < 1) continue;
-
-      new_path.insert(new_path.end(), segment.begin(), segment.end());
-      idx_vec.push_back(new_path.size()-1);
-      if (i != path.size() - 2) new_path.pop_back();
-    }
-
+    int N = std::round(Length(path)/resolution);
+    new_path = discretizePath(path, N, idx_vec);
     return new_path;
+
+
+    // std::vector<Eigen::Vector3d> new_path, segment;
+    //
+    // if (path.size() < 2) {
+    //   ROS_ERROR("what path? ");
+    //   return new_path;
+    // }
+    //
+    // idx_vec.push_back(0);
+    // for (size_t i = 0; i < path.size() - 1; ++i) {
+    //   segment = discretizeLine(path[i], path[i + 1], resolution);
+    //
+    //   if (segment.size() < 1) continue;
+    //
+    //   new_path.insert(new_path.end(), segment.begin(), segment.end());
+    //
+    //   idx_vec.push_back(new_path.size()-1);
+    //
+    //   if (i != path.size() - 2) new_path.pop_back();
+    // }
+    // return new_path;
+
   }
 
   inline std::vector<Eigen::Vector3d> rediscretizePath(const std::vector<Eigen::Vector3d>& path)
