@@ -1,3 +1,18 @@
+/*
+PathUtils.
+Copyright (C) 2021 Xuning Yang
+
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
 #pragma once
 
 #include <limits>
@@ -5,7 +20,7 @@
 #include <vector>
 #include <Eigen/Eigen>
 
-#include <control_arch/utils/state_t.h>
+#include <planning_representations/FlatState.h>
 
 namespace path_utils
 {
@@ -22,7 +37,7 @@ namespace path_utils
   }
 
   // compute length of the whole path.
-  inline double Length(const std::vector<state_t>& path)
+  inline double Length(const std::vector<planner::FlatState>& path)
   {
     double length = 0.0;
     if (path.size() < 2) return length;
@@ -170,31 +185,33 @@ namespace path_utils
     idx_vec.push_back(dis_path.size()-1);
 
     // check that lengths are the ssame
-    std::cout << "idx_vec length: " << idx_vec.size() << " path length: " << path.size() << " they should be the same " << std::endl;
+    if (idx_vec.size() != path.size()) {
+      std::cout << "idx_vec length: " << idx_vec.size() << " path length: " << path.size() << " they should be the same! " << std::endl;
+    }
 
     return dis_path;
   }
 
 
   // rediscretize a path
-  inline std::vector<state_t> discretizePath(const std::vector<state_t>& path, int pt_num)
+  inline std::vector<planner::FlatState> discretizePath(const std::vector<planner::FlatState>& path, int pt_num)
   {
     // convert it into a path first
     std::vector<Eigen::Vector3d> path_temp;
     for (auto& point : path)
     {
-      path_temp.push_back(point.pos.eigen());
+      path_temp.push_back(point.pos);
     }
 
     auto rediscretized_path_temp = discretizePath(path_temp, pt_num);
 
     // convert it back into state_t; however the higher derivative info will be lost.
 
-    std::vector<state_t> rediscretized_path;
+    std::vector<planner::FlatState> rediscretized_path;
     for (auto& point : rediscretized_path_temp)
     {
-      state_t state;
-      state.pos = geometry_utils::Vec3(point(0), point(1), point(2));
+      planner::FlatState state;
+      state.pos = Eigen::Vector3d(point(0), point(1), point(2));
       rediscretized_path.push_back(state);
     }
 
@@ -253,28 +270,6 @@ namespace path_utils
     new_path = discretizePath(path, N, idx_vec);
     return new_path;
 
-
-    // std::vector<Eigen::Vector3d> new_path, segment;
-    //
-    // if (path.size() < 2) {
-    //   ROS_ERROR("what path? ");
-    //   return new_path;
-    // }
-    //
-    // idx_vec.push_back(0);
-    // for (size_t i = 0; i < path.size() - 1; ++i) {
-    //   segment = discretizeLine(path[i], path[i + 1], resolution);
-    //
-    //   if (segment.size() < 1) continue;
-    //
-    //   new_path.insert(new_path.end(), segment.begin(), segment.end());
-    //
-    //   idx_vec.push_back(new_path.size()-1);
-    //
-    //   if (i != path.size() - 2) new_path.pop_back();
-    // }
-    // return new_path;
-
   }
 
   inline std::vector<Eigen::Vector3d> rediscretizePath(const std::vector<Eigen::Vector3d>& path)
@@ -284,11 +279,11 @@ namespace path_utils
 
   // find point along path
 
-  inline std::tuple<int, state_t> findClosestPointAlongPath(const std::vector<state_t>& path, const Eigen::Vector3d& pos)
+  inline std::tuple<int, planner::FlatState> findClosestPointAlongPath(const std::vector<planner::FlatState>& path, const Eigen::Vector3d& pos)
   {
     int idx = 0;
     double min_dist = std::numeric_limits<double>::max();
-    state_t closest_reference = path.front();
+    planner::FlatState closest_reference = path.front();
 
     // special conditions
     if (path.size() == 0)
@@ -297,7 +292,7 @@ namespace path_utils
 
     for (size_t i = 0; i < path.size(); i++)
     {
-      double dist = (pos - path[i].pos.eigen()).norm();
+      double dist = (pos - path[i].pos).norm();
 
       if (dist < min_dist)
       {
@@ -334,10 +329,10 @@ namespace path_utils
     return {idx, closest_reference};
   }
 
-  inline std::tuple<int, state_t> findPointAtTime(const std::vector<state_t>& path, double t)
+  inline std::tuple<int, planner::FlatState> findPointAtTime(const std::vector<planner::FlatState>& path, double t)
   {
     int idx = -1;
-    state_t closest_reference = path.front();
+    planner::FlatState closest_reference = path.front();
 
     if (path.size() == 0)
       throw std::invalid_argument("[path_utils::findPointAtTime] path vector is empty!");
@@ -363,13 +358,13 @@ namespace path_utils
 
   // get segments of path
 
-  inline std::tuple<double, std::vector<state_t>> getSegmentWithLength(const std::vector<state_t>& path, const Eigen::Vector3d& start_pos, double length)
+  inline std::tuple<double, std::vector<planner::FlatState>> getSegmentWithLength(const std::vector<planner::FlatState>& path, const Eigen::Vector3d& start_pos, double length)
   {
     if (path.size() == 0)
       throw std::invalid_argument("[path_utils::getSegmentWithLength] path vector is empty!");
 
     // initialize
-    std::vector<state_t> segment;
+    std::vector<planner::FlatState> segment;
 
     // find starting state
     auto [idx, start_state] = findClosestPointAlongPath(path, start_pos);
@@ -383,7 +378,7 @@ namespace path_utils
     double dist = 0;
     for (int i = idx+1; i < (int)path.size(); i++)
     {
-      double ds = (path[i].pos.eigen() - path[i-1].pos.eigen()).norm();
+      double ds = (path[i].pos - path[i-1].pos).norm();
       segment.push_back(path[i]);
       dist += ds;
       if (dist >= length) break;
@@ -394,14 +389,16 @@ namespace path_utils
     return {duration, segment};
   }
 
+
   // Extract a specific segment from the path with a fixed duration.
-  inline std::tuple<double, std::vector<state_t>> getSegmentWithDuration(const std::vector<state_t>& path, const Eigen::Vector3d& start_pos, double duration)
+
+  inline std::tuple<double, std::vector<planner::FlatState>> getSegmentWithDuration(const std::vector<planner::FlatState>& path, const Eigen::Vector3d& start_pos, double duration)
   {
     if (path.size() == 0)
       throw std::invalid_argument("[path_utils::getSegmentWithDuration] path vector is empty!");
 
     // initialize
-    std::vector<state_t> segment;
+    std::vector<planner::FlatState> segment;
 
     // find starting state
     auto [idx, start_state] = findClosestPointAlongPath(path, start_pos);
@@ -425,7 +422,8 @@ namespace path_utils
   }
 
   // Extract a fixed segment from a fixed duratin.
-  inline std::tuple<double, std::vector<state_t>> getSegmentWithDuration(const std::vector<state_t>& path, double start_time, double duration)
+
+  inline std::tuple<double, std::vector<planner::FlatState>> getSegmentWithDuration(const std::vector<planner::FlatState>& path, double start_time, double duration)
   {
 
     // Check for special conditions
@@ -433,7 +431,7 @@ namespace path_utils
       throw std::invalid_argument("[path_utils::getSegmentWithDuration] path vector is empty!");
 
     // initialize
-    std::vector<state_t> segment;
+    std::vector<planner::FlatState> segment;
     if (duration == 0) return {0.0, segment}; // if the duration is zero
 
     auto [idx, start_state] = findPointAtTime(path, start_time);
@@ -451,38 +449,40 @@ namespace path_utils
     return {T, segment};
   }
 
+
   // conversions
-  inline std::vector<Eigen::Vector3d> convertStateToEigenPos(const std::vector<state_t>& path)
+
+  inline std::vector<Eigen::Vector3d> convertStateToEigenPos(const std::vector<planner::FlatState>& path)
   {
     std::vector<Eigen::Vector3d> eigen_pos;
     for (auto & state : path)
     {
-      eigen_pos.push_back(state.pos.eigen());
+      eigen_pos.push_back(state.pos);
     }
     return eigen_pos;
   }
 
-  inline std::vector<Eigen::Vector3d> convertStateToEigenVel(const std::vector<state_t>& path)
+  inline std::vector<Eigen::Vector3d> convertStateToEigenVel(const std::vector<planner::FlatState>& path)
   {
     std::vector<Eigen::Vector3d> eigen_vel;
     for (auto & state : path)
     {
-      eigen_vel.push_back(state.vel.eigen());
+      eigen_vel.push_back(state.vel);
     }
     return eigen_vel;
   }
 
-  inline std::vector<Eigen::Vector3d> convertStateToEigenAcc(const std::vector<state_t>& path)
+  inline std::vector<Eigen::Vector3d> convertStateToEigenAcc(const std::vector<planner::FlatState>& path)
   {
     std::vector<Eigen::Vector3d> eigen_acc;
     for (auto & state : path)
     {
-      eigen_acc.push_back(state.acc.eigen());
+      eigen_acc.push_back(state.acc);
     }
     return eigen_acc;
   }
 
-  inline void print(const std::vector<state_t>& path, std::string str="", bool vel = false, bool acc = false, bool jerk = false, bool yaw = false)
+  inline void print(const std::vector<planner::FlatState>& path, std::string str="", bool vel = false, bool acc = false, bool jerk = false, bool yaw = false)
   {
     printf("%s(%d):\n", str.c_str(), path.size());
     for (auto& state : path)
@@ -495,10 +495,11 @@ namespace path_utils
       if (jerk)
         printf(" jerk [%.2f, %.2f, %.2f]", state.jerk(0), state.jerk(1), state.jerk(2));
       if (yaw)
-        printf(" yaw [%.2f]", state.yaw());
+        printf(" yaw [%.2f]", state.yaw);
       printf("\n");
     }
   }
+
 
   inline void print(const std::vector<Eigen::Vector3d>& path, std::string str="")
   {

@@ -1,3 +1,18 @@
+/*
+Similarity.
+Copyright (C) 2021 Xuning Yang
+
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
 #pragma once
 
 #include <limits>
@@ -7,13 +22,14 @@
 
 #include <Eigen/Eigen>
 
-#include <control_arch/utils/state_t.h>
+#include <planning_representations/FlatState.h>
 
 namespace similarity
 {
   // Dynamic Time Warping: A metric for computing similarity between two temporal sequences: https://en.wikipedia.org/wiki/Dynamic_time_warping
   // This function computes the similarity between the euclidean distance of the positions of states.
-  inline double DynamicTimeWarpingDistance(const std::vector<state_t>& traj1, const std::vector<state_t>& traj2)
+
+  inline double DynamicTimeWarpingDistance(const std::vector<planner::FlatState>& traj1, const std::vector<planner::FlatState>& traj2)
   {
     // initialize with zero;
     Eigen::MatrixXd dtw = Eigen::MatrixXd::Constant(traj1.size(), traj2.size(), Eigen::Infinity);
@@ -38,7 +54,8 @@ namespace similarity
 
   // Discrete Frechet Distance: a measure of the similarity between two discrete curves in metric spaces: http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.90.937&rep=rep1&type=pdf
   // The two vectors must be of the same distance.
-  inline double DiscreteFrechetDistance(const std::vector<state_t>& traj1, const std::vector<state_t>& traj2)
+
+  inline double DiscreteFrechetDistance(const std::vector<planner::FlatState>& traj1, const std::vector<planner::FlatState>& traj2)
   {
     if (traj1.size() != traj2.size())
     {
@@ -99,6 +116,7 @@ namespace similarity
     double cm = C(traj1.size()-1, traj2.size()-1);
     return cm;
   }
+
 
   inline double DiscreteFrechetDistance(const std::vector<Eigen::Vector3d>& traj1, const std::vector<Eigen::Vector3d>& traj2)
   {
@@ -165,14 +183,14 @@ namespace similarity
 
   inline void testDFD()
   {
-    std::vector<state_t> traj1;
-    std::vector<state_t> traj2;
+    std::vector<planner::FlatState> traj1;
+    std::vector<planner::FlatState> traj2;
     for (int i = 0; i < 10; i++)
     {
-      state_t pos1;
-      state_t pos2;
-      pos1.pos = geometry_utils::Vec3(1.0*i, 2.0, 3.0);
-      pos2.pos = geometry_utils::Vec3(1.0, 2.0*i, 3.0);
+      planner::FlatState pos1;
+      planner::FlatState pos2;
+      pos1.pos = Eigen::Vector3d(1.0*i, 2.0, 3.0);
+      pos2.pos = Eigen::Vector3d(1.0, 2.0*i, 3.0);
       traj1.push_back(pos1);
       traj2.push_back(pos2);
     }
